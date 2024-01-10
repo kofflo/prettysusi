@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prettysusi"
+version = "0.0.1"
+authors = [
+  { name="Alessandro Conti", email="alxconti@yahoo.com" },
+]
+description = "The PrettY Smart USer Interface"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/kofflo/prettysusi"
+Issues = "https://github.com/kofflo/prettysusi/issues"
