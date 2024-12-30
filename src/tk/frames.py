@@ -2,12 +2,12 @@ import tkinter
 import tkinter.ttk
 import tkinter.messagebox
 
-from ..abstract.frames import AbstractIconFrame, FrameStyle, CursorStyle, AbstractDialog, AbstractMessageDialog
+from ..abstract.frames import AbstractFrame, FrameStyle, CursorStyle, AbstractDialog, AbstractMessageDialog
 
 
-class Frame(AbstractIconFrame):
+class Frame(AbstractFrame):
 
-    def __init__(self, *, parent, pos=None, size=None, **kwargs):
+    def __init__(self, *, parent=None, pos=None, size=None, **kwargs):
 
         if not isinstance(parent, Frame):
             logical_parent = None
@@ -16,8 +16,6 @@ class Frame(AbstractIconFrame):
             logical_parent = parent
             tk_parent = parent._toplevel
         self._toplevel = tkinter.Toplevel(tk_parent)
-        self._toplevel.bind('<<CloseFrame>>', lambda event: self._on_close())
-        self._toplevel.bind('<<UpdateGui>>', lambda event: self.update_gui(self._update_gui_data))
         self._toplevel.grid_columnconfigure(0, weight=1)
         self._toplevel.grid_rowconfigure(0, weight=1)
 
@@ -41,11 +39,10 @@ class Frame(AbstractIconFrame):
         else:
             self._toplevel.wm_protocol('WM_DELETE_WINDOW', self._on_close)
 
+        self._panel = None
+        self._parent = self._toplevel
         super().__init__(parent=logical_parent, **kwargs)
-        self._create_widgets(None)
-        layout = self._create_gui().create_layout(self._toplevel)
-        layout.grid(row=0, column=0, sticky="nsew")
-        self._create_menu()
+        self._layout.grid(row=0, column=0, sticky="nsew")
 
     def event_connect(self, event, on_event):
         self._toplevel.bind(event, lambda e: on_event(**self._event_data[event]))
@@ -53,13 +50,6 @@ class Frame(AbstractIconFrame):
     def event_trigger(self, event, **kwargs):
         self._event_data[event] = kwargs
         self._toplevel.event_generate(event)
-
-    def _create_menu(self):
-        #
-        pass
-
-    def _create_gui(self):
-        raise NotImplementedError
 
     @property
     def toplevel(self):
@@ -88,32 +78,18 @@ class Frame(AbstractIconFrame):
         #
         pass
 
-    def close(self):
+    def _command_close(self):
         self._on_close()
 
     def _on_close(self):
         self._toplevel.destroy()
-        self.detach()
-        for child in self.child_views:
-            child.close()
-        self.on_close(self)
+        self._close_operations()
         if self.parent is None:
             self._toplevel.tk.quit()
 
     def _set_menubar(self, menu):
-        menu.build_menu(menubar=menu)
+        menu._build_menu(menubar=menu)
         self._toplevel.config(menu=menu._widget)
-
-    def _fit_frame(self):
-        #
-        pass
-
-    def close_from_thread(self):
-        self._toplevel.event_generate('<<CloseFrame>>')
-
-    def update_gui_from_thread(self, data):
-        self._update_gui_data = data
-        self._toplevel.event_generate('<<UpdateGui>>')
 
     def _set_cursor(self, cursor):
         if cursor is CursorStyle.SIZING:
@@ -128,7 +104,6 @@ class Frame(AbstractIconFrame):
 class Dialog(AbstractDialog):
 
     def __init__(self, *, parent, **kwargs):
-
         if not isinstance(parent, Frame):
             tk_parent = parent
         else:
@@ -140,14 +115,10 @@ class Dialog(AbstractDialog):
 
         self._toplevel.resizable(0, 0)
 
+        self._panel = self._toplevel
+        self._parent = self._toplevel
         super().__init__(**kwargs)
-        self._create_widgets(self._toplevel)
-
-        layout = self._create_gui().create_layout(self._toplevel)
-        layout.pack()
-
-    def _create_gui(self):
-        raise NotImplementedError
+        self._layout.pack()
 
     @property
     def toplevel(self):
@@ -163,7 +134,6 @@ class Dialog(AbstractDialog):
         self._toplevel.title(self.title)
 
     def show_modal(self):
-        self.update_gui({})
         self._toplevel.grab_set()
         self._toplevel.wait_window()
         return self._return_value
@@ -185,8 +155,8 @@ class Dialog(AbstractDialog):
 
 class MessageDialog(AbstractMessageDialog):
 
-    def __init__(self, parent, message, caption):
-        super().__init__(message, title=caption)
+    def __init__(self, *, parent, **kwargs):
+        super().__init__(**kwargs)
 
     def __enter__(self):
         return self
@@ -212,6 +182,5 @@ class MessageDialog(AbstractMessageDialog):
         super(MessageDialog, MessageDialog).message.__set__(self, message)
 
     def show_modal(self):
-        self.update_gui({})
         return_value = tkinter.messagebox.showerror(title=self.title, message=self.message)
         return return_value == tkinter.messagebox.OK

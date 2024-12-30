@@ -11,14 +11,14 @@ from ..abstract.widgets import AbstractWidget, AbstractMouseEventsWidget, Abstra
     AbstractButton, AbstractCheckBox, AbstractRadioBox, AbstractBitmap, \
     AbstractText, AbstractCalendar, AbstractSpinControl, AbstractMenu, TextStyle, AbstractTextTimedMenu
 
-from ..tk import ttk_style
+from . import ttk_style
 
 
-def rgb2hex(r, g, b, *args):
+def _rgb2hex(r, g, b, *args):
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
 
-def build_font(size, style):
+def _build_font(size, style):
     if style is TextStyle.BOLD:
         font = tkinter.font.Font(size=size, weight='bold')
     elif style is TextStyle.ITALIC:
@@ -30,7 +30,7 @@ def build_font(size, style):
     return font
 
 
-class Widget(AbstractWidget):
+class _Widget(AbstractWidget):
 
     def __init__(self, **kwargs):
         self._widget = None
@@ -69,10 +69,13 @@ class Widget(AbstractWidget):
             self.configure(state=NORMAL)
         else:
             self.configure(state=DISABLED)
-        # TODO with hide!
+
+    def grid(self, **kwargs):
+        if self._widget is not None and not self._is_hidden:
+            self._widget.grid(**kwargs)
 
 
-class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
+class _MouseEventsWidget(AbstractMouseEventsWidget, _Widget):
 
     def set_frame(self, frame):
         self.bind('<Button-1>', self._on_left_down)
@@ -117,28 +120,24 @@ class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
         self.on_mouse_leave(self)
 
 
-class LabelledWidget(AbstractLabelledWidget, Widget):
+class _LabelledWidget(AbstractLabelledWidget, _Widget):
 
     @property
     def label(self):
-        return super(LabelledWidget, LabelledWidget).label.__get__(self)
+        return super(_LabelledWidget, _LabelledWidget).label.__get__(self)
 
     @label.setter
     def label(self, label):
-        super(LabelledWidget, LabelledWidget).label.__set__(self, label)
+        super(_LabelledWidget, _LabelledWidget).label.__set__(self, label)
         if self._widget is not None:
-            self.configure(text=super(LabelledWidget, LabelledWidget).label.__get__(self))
-            if isinstance(self._widget, tkinter.ttk.Checkbutton):
-                self.state(['!alternate'])
+            self.configure(text=super(_LabelledWidget, _LabelledWidget).label.__get__(self))
 
     def set_frame(self, frame):
-        self.configure(text=super(LabelledWidget, LabelledWidget).label.__get__(self))
+        self.configure(text=super(_LabelledWidget, _LabelledWidget).label.__get__(self))
         super().set_frame(frame)
-        if isinstance(self._widget, tkinter.ttk.Checkbutton):
-            self.state(['!alternate'])
 
 
-class Button(AbstractButton, LabelledWidget):
+class Button(AbstractButton, _LabelledWidget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -151,7 +150,7 @@ class Button(AbstractButton, LabelledWidget):
         super().set_frame(frame)
 
 
-class CheckBox(AbstractCheckBox, LabelledWidget):
+class CheckBox(AbstractCheckBox, _LabelledWidget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -159,8 +158,19 @@ class CheckBox(AbstractCheckBox, LabelledWidget):
     def _on_click(self):
         self.on_click(self)
 
+    @property
+    def label(self):
+        return super(CheckBox, CheckBox).label.__get__(self)
+
+    @label.setter
+    def label(self, label):
+        super(CheckBox, CheckBox).label.__set__(self, label)
+        if self._widget is not None:
+            self.state(['!alternate'])
+
     def set_frame(self, frame):
         self._widget = tkinter.ttk.Checkbutton(frame, command=self._on_click)
+        self.state(['!alternate'])
         if super(CheckBox, CheckBox).value.__get__(self):
             self.state(['selected'])
         else:
@@ -184,7 +194,7 @@ class CheckBox(AbstractCheckBox, LabelledWidget):
                 self.state(['!selected'])
 
 
-class RadioBox(AbstractRadioBox, Widget):
+class RadioBox(AbstractRadioBox, _Widget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -228,7 +238,7 @@ class RadioBox(AbstractRadioBox, Widget):
             rb.configure(*args, **kwargs)
 
 
-class Bitmap(AbstractBitmap, MouseEventsWidget, Widget):
+class Bitmap(AbstractBitmap, _MouseEventsWidget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -254,7 +264,7 @@ class Bitmap(AbstractBitmap, MouseEventsWidget, Widget):
                 self.configure(image=self._tk_image)
 
 
-class TextWidget(AbstractText, Widget):
+class _TextWidget(AbstractText, _Widget):
 
     def _get_style_id(self):
         if self._widget is not None:
@@ -268,15 +278,15 @@ class TextWidget(AbstractText, Widget):
             return None
 
     def set_frame(self, frame):
-        self.configure(font=build_font(self.font_size, self.font_style))
-        self.configure(font=build_font(self.font_size, self.font_style))
+        self.configure(font=_build_font(self.font_size, self.font_style))
+        self.configure(font=_build_font(self.font_size, self.font_style))
         if self.foreground_color:
-            ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), foreground=rgb2hex(*self.foreground_color))
+            ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), foreground=_rgb2hex(*self.foreground_color))
         else:
             default_fg = ttk_style.lookup(self._get_style_id(), 'foreground')
             ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), foreground=default_fg)
         if self.background_color:
-            ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), background=rgb2hex(*self.background_color))
+            ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), background=_rgb2hex(*self.background_color))
         else:
             default_bg = ttk_style.lookup(self._get_style_id(), 'background')
             ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), background=default_bg)
@@ -285,35 +295,35 @@ class TextWidget(AbstractText, Widget):
 
     @property
     def font_style(self):
-        return super(TextWidget, TextWidget).font_style.__get__(self)
+        return super(_TextWidget, _TextWidget).font_style.__get__(self)
 
     @font_style.setter
     def font_style(self, font_style):
-        super(TextWidget, TextWidget).font_style.__set__(self, font_style)
+        super(_TextWidget, _TextWidget).font_style.__set__(self, font_style)
         if self._widget is not None:
             self.configure(font=build_font(self.font_size, self.font_style))
 
     @property
     def font_size(self):
-        return super(TextWidget, TextWidget).font_size.__get__(self)
+        return super(_TextWidget, _TextWidget).font_size.__get__(self)
 
     @font_size.setter
     def font_size(self, font_size):
-        super(TextWidget, TextWidget).font_size.__set__(self, font_size)
+        super(_TextWidget, _TextWidget).font_size.__set__(self, font_size)
         if self._widget is not None:
             self.configure(font=build_font(self.font_size, self.font_style))
 
     @property
     def foreground_color(self):
-        return super(TextWidget, TextWidget).foreground_color.__get__(self)
+        return super(_TextWidget, _TextWidget).foreground_color.__get__(self)
 
     @foreground_color.setter
     def foreground_color(self, foreground_color):
-        super(TextWidget, TextWidget).foreground_color.__set__(self, foreground_color)
+        super(_TextWidget, _TextWidget).foreground_color.__set__(self, foreground_color)
         if self._widget is not None:
             if self.foreground_color:
                 ttk_style.configure(str(id(self)) + '.' + self._get_style_id(),
-                                    foreground=rgb2hex(*self.foreground_color))
+                                    foreground=_rgb2hex(*self.foreground_color))
             else:
                 default_fg = ttk_style.lookup(self._get_style_id(), 'foreground')
                 ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), foreground=default_fg)
@@ -321,22 +331,22 @@ class TextWidget(AbstractText, Widget):
 
     @property
     def background_color(self):
-        return super(TextWidget, TextWidget).background_color.__get__(self)
+        return super(_TextWidget, _TextWidget).background_color.__get__(self)
 
     @background_color.setter
     def background_color(self, background_color):
-        super(TextWidget, TextWidget).background_color.__set__(self, background_color)
+        super(_TextWidget, _TextWidget).background_color.__set__(self, background_color)
         if self._widget is not None:
             if self.background_color:
                 ttk_style.configure(str(id(self)) + '.' + self._get_style_id(),
-                                    background=rgb2hex(*self.background_color))
+                                    background=_rgb2hex(*self.background_color))
             else:
                 default_bg = ttk_style.lookup(self._get_style_id(), 'background')
                 ttk_style.configure(str(id(self)) + '.' + self._get_style_id(), background=default_bg)
             self.configure(style=str(id(self)) + '.' + self._get_style_id())
 
 
-class TextControl(TextWidget):
+class TextControl(_TextWidget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -360,7 +370,7 @@ class TextControl(TextWidget):
             self.insert(0, super(TextControl, TextControl).label.__get__(self))
 
 
-class Text(TextWidget, MouseEventsWidget, LabelledWidget):
+class Text(_TextWidget, _MouseEventsWidget, _LabelledWidget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -370,7 +380,7 @@ class Text(TextWidget, MouseEventsWidget, LabelledWidget):
         super().set_frame(frame)
 
 
-class Calendar(AbstractCalendar, Widget):
+class Calendar(AbstractCalendar, _Widget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -418,19 +428,15 @@ class Calendar(AbstractCalendar, Widget):
         if self._widget is not None:
             self.selection_set(super(Calendar, Calendar).selected_date.__get__(self))
 
-    def set_language(self, language):
+    def set_language(self, language_code):
         if self._widget is not None:
-            if language == 'English':
-                self.configure(locale='en_UK')
-            elif language == 'Italiano':
-                self.configure(locale='it_IT')
-            elif language == 'Deutsch':
-                self.configure(locale='de_DE')
-            else:
-                self.configure(locale='en_UK')
+            try:
+                self.configure(locale=language_code)
+            except:
+                self.configure(locale='en')
 
 
-class SpinControl(AbstractSpinControl, Widget):
+class SpinControl(AbstractSpinControl, _Widget):
 
     def __init__(self, panel, **kwargs):
         super().__init__(**kwargs)
@@ -486,7 +492,7 @@ class SpinControl(AbstractSpinControl, Widget):
             self.state(['readonly'])
 
 
-class Menu(AbstractMenu, Widget):
+class Menu(AbstractMenu, _Widget):
 
     _TIMER_FORCE_CLOSE = 0.1
 
@@ -499,10 +505,10 @@ class Menu(AbstractMenu, Widget):
     def _on_click(self, item):
         self.on_click(self, item)
 
-    def build_menu(self, menubar=None, inherited_on_click=None):
+    def _build_menu(self, menubar=None, inherited_on_click=None):
         if self._widget is None:
             self._widget = tkinter.Menu(self._parent.toplevel, tearoff=0)
-        super().build_menu(menubar, inherited_on_click)
+        super()._build_menu(menubar, inherited_on_click)
 
     def pop_up(self):
         if self._widget is not None:
@@ -528,7 +534,7 @@ class Menu(AbstractMenu, Widget):
         if item == self.SEPARATOR:
             self.add_separator()
         elif isinstance(item, Menu):
-            item.build_menu(inherited_on_click=self.on_click)
+            item._build_menu(inherited_on_click=self.on_click)
             self.add_cascade(label=item.label, menu=item._widget)
         else:
             ampersand = item.find('&')
@@ -559,7 +565,7 @@ class Menu(AbstractMenu, Widget):
             self.entryconfig(item, state="disabled")
 
 
-class TextTimedMenu(AbstractTextTimedMenu, Widget):
+class TextTimedMenu(AbstractTextTimedMenu, _Widget):
 
     def __init__(self, parent, **kwargs):
         self._parent = parent

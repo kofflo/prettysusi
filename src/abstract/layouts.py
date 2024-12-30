@@ -1,5 +1,7 @@
 from enum import Flag, auto
 
+from .. import BaseClass
+
 
 class Align(Flag):
     LEFT = auto()
@@ -14,9 +16,9 @@ class Align(Flag):
     EXPAND = auto()
 
 
-class AbstractLayout:
+class AbstractLayout(BaseClass):
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         raise NotImplementedError()
 
 

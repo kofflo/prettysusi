@@ -3,13 +3,10 @@ import wx
 from ..abstract.layouts import AbstractBoxLayout, AbstractGridLayout, Align
 
 
-class Layout:
+class _Layout:
     _BORDER_FLAGS = [wx.TOP, wx.RIGHT, wx.BOTTOM, wx.LEFT]
 
-    def create_layout(self, parent):
-        raise NotImplementedError()
-
-    def apply_align(self, align):
+    def _apply_align(self, align):
         if align & Align.EXPAND:
             flag = wx.EXPAND
         else:
@@ -38,10 +35,10 @@ class Layout:
         return widget, min_border, flag
 
 
-class BoxLayout(AbstractBoxLayout, Layout):
+class _BoxLayout(AbstractBoxLayout, _Layout):
     _DIRECTION = None
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         sizer = wx.BoxSizer(self._DIRECTION)
         for widget_dict in self._widgets:
             widget = widget_dict['type']
@@ -51,10 +48,10 @@ class BoxLayout(AbstractBoxLayout, Layout):
                 sizer.AddStretchSpacer(widget_dict['stretch'])
             else:
                 widget_align = widget_dict['align']
-                flag = self.apply_align(widget_align)
+                flag = self._apply_align(widget_align)
 
-                if isinstance(widget, Layout):
-                    widget = widget.create_layout(None)
+                if isinstance(widget, _Layout):
+                    widget = widget._create_layout(None)
 
                 widget_border = widget_dict['border']
                 if isinstance(widget_border, int):
@@ -69,14 +66,15 @@ class BoxLayout(AbstractBoxLayout, Layout):
 
         if parent is not None:
             parent.SetSizer(sizer)
+
         return sizer
 
 
-class VBoxLayout(BoxLayout):
+class VBoxLayout(_BoxLayout):
     _DIRECTION = wx.VERTICAL
 
-    def apply_align(self, align):
-        flag = super().apply_align(align)
+    def _apply_align(self, align):
+        flag = super()._apply_align(align)
         if flag == 0:
             if align & Align.LEFT:
                 flag = wx.ALIGN_LEFT
@@ -87,11 +85,11 @@ class VBoxLayout(BoxLayout):
         return flag
 
 
-class HBoxLayout(BoxLayout):
+class HBoxLayout(_BoxLayout):
     _DIRECTION = wx.HORIZONTAL
 
-    def apply_align(self, align):
-        flag = super().apply_align(align)
+    def _apply_align(self, align):
+        flag = super()._apply_align(align)
         if flag == 0:
             if align & Align.TOP:
                 flag = wx.ALIGN_TOP
@@ -102,9 +100,9 @@ class HBoxLayout(BoxLayout):
         return flag
 
 
-class GridLayout(AbstractGridLayout, Layout):
+class GridLayout(AbstractGridLayout, _Layout):
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         sizer = wx.FlexGridSizer(self._rows, self._cols, self._vgap, self._hgap)
 
         for row in range(self._rows):
@@ -124,9 +122,9 @@ class GridLayout(AbstractGridLayout, Layout):
                     sizer.Add(widget_dict['width'], widget_dict['height'])
                 else:
                     widget_align = widget_dict['align']
-                    flag = self.apply_align(widget_align)
+                    flag = self._apply_align(widget_align)
 
-                    if isinstance(widget, Layout):
+                    if isinstance(widget, _Layout):
                         widget = widget.create_layout(None)
 
                     widget_border = widget_dict['border']
@@ -144,8 +142,8 @@ class GridLayout(AbstractGridLayout, Layout):
             parent.SetSizer(sizer)
         return sizer
 
-    def apply_align(self, align):
-        flag = super().apply_align(align)
+    def _apply_align(self, align):
+        flag = super()._apply_align(align)
         if flag == 0:
             if align & Align.TOP:
                 flag = wx.ALIGN_TOP

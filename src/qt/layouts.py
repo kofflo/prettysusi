@@ -6,12 +6,9 @@ import PySide6.QtGui
 from ..abstract.layouts import AbstractBoxLayout, AbstractGridLayout, Align
 
 
-class Layout:
+class _Layout:
 
-    def create_layout(self, parent):
-        raise NotImplementedError()
-
-    def apply_align(self, align, size_policy):
+    def _apply_align(self, align, size_policy):
         align_flag = 0
         if align & Align.EXPAND:
             align_flag = -1
@@ -20,7 +17,7 @@ class Layout:
         return align_flag
 
 
-class BoxLayout(AbstractBoxLayout, Layout):
+class _BoxLayout(AbstractBoxLayout, _Layout):
     _LAYOUT_CLASS = None
     _BEFORE = None
     _AFTER = None
@@ -28,7 +25,7 @@ class BoxLayout(AbstractBoxLayout, Layout):
     _ORTO_BEFORE = None
     _ORTO_AFTER = None
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         layout = self._LAYOUT_CLASS()
         layout.setSpacing(0)
         for widget_dict in self._widgets:
@@ -43,8 +40,8 @@ class BoxLayout(AbstractBoxLayout, Layout):
                     widget_border = [widget_border] * 4
 
                 widget_align = widget_dict['align']
-                if isinstance(widget, Layout):
-                    widget_layout = widget.create_layout(None)
+                if isinstance(widget, _Layout):
+                    widget_layout = widget._create_layout(None)
                     widget_layout.setContentsMargins(widget_border[3], widget_border[0], widget_border[1], widget_border[2])
                     align_layout = self._ORTO_LAYOUT_CLASS()
                     if widget_align & Align.END or widget_align & Align.CENTER:
@@ -55,7 +52,7 @@ class BoxLayout(AbstractBoxLayout, Layout):
                     layout.addLayout(align_layout, stretch=widget_dict['stretch'])
                 else:
                     widget_size_policy = widget.sizePolicy()
-                    align_flag = self.apply_align(widget_align, widget_size_policy)
+                    align_flag = self._apply_align(widget_align, widget_size_policy)
                     widget.setSizePolicy(widget_size_policy)
                     layout.addSpacing(widget_border[self._BEFORE])
                     border_layout = self._ORTO_LAYOUT_CLASS()
@@ -67,13 +64,14 @@ class BoxLayout(AbstractBoxLayout, Layout):
                     border_layout.addSpacing(widget_border[self._ORTO_AFTER])
                     layout.addLayout(border_layout, stretch=widget_dict['stretch'])
                     layout.addSpacing(widget_border[self._AFTER])
+
         if parent is not None:
             parent.setLayout(layout)
 
         return layout
 
 
-class VBoxLayout(BoxLayout):
+class VBoxLayout(_BoxLayout):
     _LAYOUT_CLASS = PySide6.QtWidgets.QVBoxLayout
     _BEFORE = 0
     _AFTER = 2
@@ -81,8 +79,8 @@ class VBoxLayout(BoxLayout):
     _ORTO_BEFORE = 3
     _ORTO_AFTER = 1
 
-    def apply_align(self, align, size_policy):
-        align_flag = super().apply_align(align, size_policy)
+    def _apply_align(self, align, size_policy):
+        align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.LEFT:
                 align_flag = PySide6.QtCore.Qt.AlignLeft
@@ -93,7 +91,7 @@ class VBoxLayout(BoxLayout):
         return align_flag
 
 
-class HBoxLayout(BoxLayout):
+class HBoxLayout(_BoxLayout):
     _LAYOUT_CLASS = PySide6.QtWidgets.QHBoxLayout
     _BEFORE = 3
     _AFTER = 1
@@ -101,8 +99,8 @@ class HBoxLayout(BoxLayout):
     _ORTO_BEFORE = 0
     _ORTO_AFTER = 2
 
-    def apply_align(self, align, size_policy):
-        align_flag = super().apply_align(align, size_policy)
+    def _apply_align(self, align, size_policy):
+        align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.TOP:
                 align_flag = PySide6.QtCore.Qt.AlignTop
@@ -113,9 +111,9 @@ class HBoxLayout(BoxLayout):
         return align_flag
 
 
-class GridLayout(AbstractGridLayout, Layout):
+class GridLayout(AbstractGridLayout, _Layout):
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         layout = PySide6.QtWidgets.QGridLayout()
         layout.setHorizontalSpacing(self._hgap)
         layout.setVerticalSpacing(self._vgap)
@@ -141,16 +139,16 @@ class GridLayout(AbstractGridLayout, Layout):
                         widget_border = [widget_border] * 4
                     widget_align = widget_dict['align']
 
-                    if isinstance(widget, Layout):
+                    if isinstance(widget, _Layout):
                         widget_layout = widget.create_layout(None)
                         widget_layout.setContentsMargins(widget_border[3], widget_border[0], widget_border[1], widget_border[2])
-                        align_flag = self.apply_align(widget_align, None)
+                        align_flag = self._apply_align(widget_align, None)
                         if align_flag == -1:
                             align_flag = 0
                         layout.addLayout(widget_layout, row, col, alignment=align_flag)
                     else:
                         widget_size_policy = widget.sizePolicy()
-                        align_flag = self.apply_align(widget_align, widget_size_policy)
+                        align_flag = self._apply_align(widget_align, widget_size_policy)
                         widget.setSizePolicy(widget_size_policy)
 
                         border_layout = PySide6.QtWidgets.QGridLayout()
@@ -166,8 +164,8 @@ class GridLayout(AbstractGridLayout, Layout):
             parent.setLayout(layout)
         return layout
 
-    def apply_align(self, align, size_policy):
-        align_flag = super().apply_align(align, size_policy)
+    def _apply_align(self, align, size_policy):
+        align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.TOP:
                 align_flag = PySide6.QtCore.Qt.AlignTop

@@ -6,10 +6,7 @@ from .tables import Grid
 
 class Layout:
 
-    def create_layout(self, parent):
-        raise NotImplementedError()
-
-    def apply_align(self, align):
+    def _apply_align(self, align):
         raise NotImplementedError()
 
     @staticmethod
@@ -25,28 +22,28 @@ class BoxLayout(AbstractBoxLayout, Layout):
         self._delta_col = 0
         super().__init__()
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         frame = tkinter.Frame(parent)
         frame.pack_propagate(0)
         for index, widget_dict in enumerate(self._widgets):
             widget = widget_dict['type']
 
             if widget == 'space':
-                self.create_space(frame, index, widget_dict['space'])
+                self._create_space(frame, index, widget_dict['space'])
             elif widget == 'stretch':
-                self.create_stretch(frame, index, widget_dict['stretch'])
+                self._create_stretch(frame, index, widget_dict['stretch'])
             else:
                 row, col = self._get_row_col(index)
 
                 widget_align = widget_dict['align']
-                sticky = self.apply_align(widget_align)
+                sticky = self._apply_align(widget_align)
 
                 widget_border = widget_dict['border']
                 if isinstance(widget_border, int):
                     widget_border = [widget_border] * 4
                 padx, pady = self._get_border(widget_border)
                 if isinstance(widget, Layout):
-                    widget = widget.create_layout(frame)
+                    widget = widget._create_layout(frame)
                     widget.grid(row=row, column=col, padx=padx, pady=pady, sticky=sticky)
                 elif isinstance(widget, Grid):
                     frame_grid = tkinter.Frame(frame)
@@ -59,56 +56,50 @@ class BoxLayout(AbstractBoxLayout, Layout):
                         padx_grid = 0
                     else:
                         padx_grid = padx[1]
-                    pippo_row = row
-                    pippo_col = col
-                    row = 0
-                    col = 0
                     if not widget._AVOID_HORIZONTAL_SCROLL:
-                        widget.xsb.grid(row=row+1, column=col, padx=(padx[0], padx_grid), pady=(5, pady[1]), sticky='new')
-#                        self._delta_row += 1
+                        widget.xsb.grid(row=1, column=0, padx=(padx[0], padx_grid), pady=(5, pady[1]), sticky='new')
                     if not widget._AVOID_VERTICAL_SCROLL:
-                        widget.ysb.grid(row=row, column=col+1, padx=(5, padx[1]), pady=(pady[0], pady_grid), sticky='nsw')
-#                        self._delta_col += 1
-                    widget.grid(row=row, column=col, padx=(padx[0], padx_grid), pady=(pady[0], pady_grid), sticky=sticky)
+                        widget.ysb.grid(row=0, column=1, padx=(5, padx[1]), pady=(pady[0], pady_grid), sticky='nsw')
+                    widget.grid(row=0, column=0, padx=(padx[0], padx_grid), pady=(pady[0], pady_grid), sticky=sticky)
                     frame_grid.columnconfigure(0, weight=1)
                     frame_grid.rowconfigure(0, weight=1)
-                    frame_grid.grid(row=pippo_row, column=pippo_col, sticky=sticky)
+                    frame_grid.grid(row=row, column=col, sticky=sticky)
                 else:
                     widget.set_frame(frame)
                     widget.grid(row=row, column=col, padx=padx, pady=pady, sticky=sticky)
 
                 widget_stretch = widget_dict['stretch']
-                self.create_stretch(frame, index, widget_stretch)
+                self._create_stretch(frame, index, widget_stretch)
 
         return frame
 
     def _get_row_col(self, index):
         raise NotImplementedError()
 
-    def create_space(self, frame, index, space):
+    def _create_space(self, frame, index, space):
         raise NotImplementedError()
 
-    def create_stretch(self, frame, index, space):
+    def _create_stretch(self, frame, index, space):
         raise NotImplementedError()
 
 
 class VBoxLayout(BoxLayout):
 
-    def create_layout(self, parent):
-        frame = super().create_layout(parent)
+    def _create_layout(self, parent):
+        frame = super()._create_layout(parent)
         frame.grid_columnconfigure(0, weight=1)
         return frame
 
-    def create_space(self, frame, index, space):
+    def _create_space(self, frame, index, space):
         frame.grid_rowconfigure(index, minsize=space)
 
-    def create_stretch(self, frame, index, stretch):
+    def _create_stretch(self, frame, index, stretch):
         frame.grid_rowconfigure(index, weight=stretch)
 
     def _get_row_col(self, index):
         return index + self._delta_row, 0
 
-    def apply_align(self, align):
+    def _apply_align(self, align):
         if align & Align.EXPAND:
             return "ew"
         elif align & Align.LEFT:
@@ -122,21 +113,21 @@ class VBoxLayout(BoxLayout):
 
 class HBoxLayout(BoxLayout):
 
-    def create_layout(self, parent):
-        frame = super().create_layout(parent)
+    def _create_layout(self, parent):
+        frame = super()._create_layout(parent)
         frame.grid_rowconfigure(0, weight=1)
         return frame
 
-    def create_space(self, frame, index, space):
+    def _create_space(self, frame, index, space):
         frame.grid_columnconfigure(index, minsize=space)
 
-    def create_stretch(self, frame, index, stretch):
+    def _create_stretch(self, frame, index, stretch):
         frame.grid_columnconfigure(index, weight=stretch)
 
     def _get_row_col(self, index):
         return 0, index + self._delta_col
 
-    def apply_align(self, align):
+    def _apply_align(self, align):
         if align & Align.EXPAND:
             return "ns"
         elif align & Align.TOP:
@@ -150,7 +141,7 @@ class HBoxLayout(BoxLayout):
 
 class GridLayout(AbstractGridLayout, Layout):
 
-    def create_layout(self, parent):
+    def _create_layout(self, parent):
         frame = tkinter.Frame(parent)
 
         for row in range(self._rows):
@@ -169,7 +160,7 @@ class GridLayout(AbstractGridLayout, Layout):
                     frame.grid_columnconfigure(col, minsize=widget_dict['width'])
                 else:
                     widget_align = widget_dict['align']
-                    sticky = self.apply_align(widget_align)
+                    sticky = self._apply_align(widget_align)
 
                     if isinstance(widget, Layout):
                         widget = widget.create_layout(frame)
@@ -193,7 +184,7 @@ class GridLayout(AbstractGridLayout, Layout):
                     widget.grid(row=row, column=col, padx=padx, pady=pady, sticky=sticky)
         return frame
 
-    def apply_align(self, align):
+    def _apply_align(self, align):
         if align & Align.EXPAND:
             return "nsew"
         else:

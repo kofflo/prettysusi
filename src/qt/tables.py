@@ -3,17 +3,17 @@ import PySide6.QtCore
 import PySide6.QtGui
 
 from ..abstract.tables import Align, TextStyle, Renderer, AbstractGrid
-from .widgets import Widget, rgb2hex
+from .widgets import _Widget, _rgb2hex
 
 _UNCHECKED_BOX_SYMBOL = '\u2610'
 _CHECKED_BOX_SYMBOL = '\u2611'
 
 
-class GridTable(PySide6.QtCore.QAbstractTableModel):
+class _GridTable(PySide6.QtCore.QAbstractTableModel):
     pass
 
 
-class TableHeader(PySide6.QtWidgets.QHeaderView):
+class _TableHeader(PySide6.QtWidgets.QHeaderView):
 
     def mousePressEvent(self, event):
         button = event.button()
@@ -40,13 +40,13 @@ class TableHeader(PySide6.QtWidgets.QHeaderView):
             self.parent().on_label_right_double_click(self.parent(), row, col)
 
 
-class Grid(AbstractGrid, Widget, PySide6.QtWidgets.QTableView):
+class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
 
     def __init__(self, panel):
         PySide6.QtWidgets.QTableView.__init__(self, panel)
         super().__init__()
-        self.setHorizontalHeader(TableHeader(PySide6.QtGui.Qt.Horizontal, self))
-        self.setVerticalHeader(TableHeader(PySide6.QtGui.Qt.Vertical, self))
+        self.setHorizontalHeader(_TableHeader(PySide6.QtGui.Qt.Horizontal, self))
+        self.setVerticalHeader(_TableHeader(PySide6.QtGui.Qt.Vertical, self))
 
         self._qt_font = PySide6.QtGui.QFont('Helvetica', self._FONT_SIZE)
         self._qt_font_bold = PySide6.QtGui.QFont('Helvetica', self._FONT_SIZE)
@@ -71,7 +71,7 @@ class Grid(AbstractGrid, Widget, PySide6.QtWidgets.QTableView):
         }
         self._grid_table = self._get_grid_table()
 
-        color_string = rgb2hex(*self._get_header_colour()[1])
+        color_string = _rgb2hex(*self._get_header_colour()[1])
         header_stylesheet = "::section{Background-color : %s}" % color_string
         self.horizontalHeader().setStyleSheet(header_stylesheet)
         self.verticalHeader().setStyleSheet(header_stylesheet)
@@ -87,7 +87,7 @@ class Grid(AbstractGrid, Widget, PySide6.QtWidgets.QTableView):
         self.setSizePolicy(PySide6.QtWidgets.QSizePolicy.Minimum, PySide6.QtWidgets.QSizePolicy.Minimum)
 
     def _get_grid_table(self):
-        grid_table = GridTable()
+        grid_table = _GridTable()
         grid_table.rowCount = self._get_row_count
         grid_table.columnCount = self._get_column_count
         grid_table.data = self._get_data

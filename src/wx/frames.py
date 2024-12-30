@@ -2,13 +2,13 @@ import wx
 import wx.adv
 import wx.lib.newevent
 
-from ..abstract.frames import AbstractIconFrame
+from ..abstract.frames import AbstractFrame
 from ..abstract.frames import FrameStyle, CursorStyle, AbstractDialog, AbstractMessageDialog
 
 
-class Frame(AbstractIconFrame, wx.Frame):
+class Frame(AbstractFrame, wx.Frame):
 
-    def __init__(self, *, parent, pos=None, size=None, **kwargs):
+    def __init__(self, *, parent=None, pos=None, size=None, **kwargs):
 
         if self._STYLE is FrameStyle.FIXED_SIZE:
             style = wx.DEFAULT_FRAME_STYLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX)
@@ -27,12 +27,10 @@ class Frame(AbstractIconFrame, wx.Frame):
         wx.Frame.__init__(self, parent, style=style, pos=wx_pos, size=wx_size)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self._panel = wx.Panel(self)
+        self._parent = self._panel
         self._frame_sizer = wx.BoxSizer(wx.VERTICAL)
         self._frame_sizer.Add(self._panel)
         super().__init__(parent=parent, **kwargs)
-        self._create_widgets(self._panel)
-        self._create_gui().create_layout(self._panel)
-        self._create_menu()
 
     def event_connect(self, event, on_event):
         self.Bind(event['binder'], lambda e: on_event(**e._getAttrDict()))
@@ -40,13 +38,6 @@ class Frame(AbstractIconFrame, wx.Frame):
     def event_trigger(self, event, **kwargs):
         event = event['class'](**kwargs)
         wx.CallAfter(wx.PostEvent, self, event)
-
-    def _create_menu(self):
-        #
-        pass
-
-    def _create_gui(self):
-        raise NotImplementedError
 
     @property
     def title(self):
@@ -70,18 +61,20 @@ class Frame(AbstractIconFrame, wx.Frame):
     def show(self):
         self.Show()
 
-    def close(self):
+    def _command_close(self):
         self.Close()
 
+    def Close(self):
+        super().Close()
+
     def _on_close(self, event):
-        self.detach()
-        self.on_close(self)
+        self._close_operations()
         event.Skip()
 
     def _set_menubar(self, menu):
         menubar = wx.MenuBar()
         self.SetMenuBar(menubar)
-        menu.build_menu(menubar=menubar)
+        menu._build_menu(menubar=menubar)
 
     def _fit_frame(self):
         self.Layout()
@@ -99,17 +92,14 @@ class Frame(AbstractIconFrame, wx.Frame):
 
 class Dialog(AbstractDialog, wx.Dialog):
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, *, parent, **kwargs):
         wx.Dialog.__init__(self, parent)
+        self._panel = self
+        self._parent = self
         super().__init__(**kwargs)
-        self._create_widgets(self)
-        self._create_gui().create_layout(self)
         self.Fit()
         self.SetSizeHints(self.GetSize().x, self.GetSize().y, self.GetMaxWidth(), self.GetMaxHeight())
         self.SetIcon(wx.Icon(parent.icon))
-
-    def _create_gui(self):
-        raise NotImplementedError
 
     @property
     def title(self):
@@ -121,7 +111,6 @@ class Dialog(AbstractDialog, wx.Dialog):
         self.SetTitle(title)
 
     def show_modal(self):
-        self.update_gui({})
         self.Fit()
         return self.ShowModal() == 1
 
@@ -136,9 +125,9 @@ class Dialog(AbstractDialog, wx.Dialog):
 
 class MessageDialog(AbstractMessageDialog, wx.MessageDialog):
 
-    def __init__(self, parent, message, title):
+    def __init__(self, *, parent, **kwargs):
         wx.MessageDialog.__init__(self, parent, "", "", wx.OK | wx.ICON_ERROR)
-        super().__init__(message, title=title)
+        super().__init__(**kwargs)
 
     @property
     def title(self):
@@ -159,5 +148,4 @@ class MessageDialog(AbstractMessageDialog, wx.MessageDialog):
         self.SetMessage(message)
 
     def show_modal(self):
-        self.update_gui({})
         return self.ShowModal() == wx.ID_OK

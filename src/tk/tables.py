@@ -3,18 +3,18 @@ import tkinter.ttk
 import tkinter.font
 
 from ..abstract.tables import Align, TextStyle, Renderer, AbstractGrid
-from .widgets import Widget
-from ..tk import ttk_style
+from .widgets import _Widget
+from . import ttk_style
 
 _UNCHECKED_BOX_SYMBOL = '\u2610'
 _CHECKED_BOX_SYMBOL = '\u2611'
 
 
-def rgb2hex(r, g, b, *args):
+def _rgb2hex(r, g, b, *args):
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
 
-def fixed_map(style, option):
+def _fixed_map(style, option):
     """
 
     Return the style map for 'option' with any styles starting with ("!disabled", "!selected", ...) filtered out.
@@ -26,7 +26,7 @@ def fixed_map(style, option):
     return [element for element in style.map("Treeview", query_opt=option) if element[:2] != ("!disabled", "!selected")]
 
 
-class Grid(AbstractGrid, Widget):
+class Grid(AbstractGrid, _Widget):
 
     _FONT_FAMILY = 'Helvetica'
     _COL_WIDTH = 100
@@ -40,9 +40,9 @@ class Grid(AbstractGrid, Widget):
     _row_colour = True
 
     ttk_style.map("Treeview",
-                  foreground=fixed_map(ttk_style, "foreground"),
-                  background=fixed_map(ttk_style, "background"),
-                  rowheight=fixed_map(ttk_style, "rowheight"))
+                  foreground=_fixed_map(ttk_style, "foreground"),
+                  background=_fixed_map(ttk_style, "background"),
+                  rowheight=_fixed_map(ttk_style, "rowheight"))
 
     def __init__(self, panel):
         super().__init__()
@@ -72,8 +72,8 @@ class Grid(AbstractGrid, Widget):
         ttk_style.configure(str(id(self)) + '.Treeview.Heading',
                             font=(self._FONT_FAMILY, self._FONT_SIZE, 'bold'),
                             padding=(self._COL_LABEL_HEIGHT - self._ROW_HEIGHT) // 2,
-                            foreground=rgb2hex(*self._get_header_colour()[0]),
-                            background=rgb2hex(*self._get_header_colour()[1]))
+                            foreground=_rgb2hex(*self._get_header_colour()[0]),
+                            background=_rgb2hex(*self._get_header_colour()[1]))
         self._current_xview = None
         self._current_yview = None
         self._frame = None
@@ -250,8 +250,8 @@ class Grid(AbstractGrid, Widget):
                     col_auto_width[col + 1] = max(col_auto_width[col + 1], self._font_for_measure.measure(value))
 
             foreground_color, background_color = self._get_colour(row, 0)
-            fg_string = rgb2hex(*foreground_color)
-            bg_string = rgb2hex(*background_color)
+            fg_string = _rgb2hex(*foreground_color)
+            bg_string = _rgb2hex(*background_color)
 
             text_style = self._get_style(row, 0)
             if text_style is TextStyle.BOLD:

@@ -10,7 +10,7 @@ from ..abstract.widgets import AbstractWidget, AbstractMouseEventsWidget, Abstra
     AbstractText, AbstractCalendar, AbstractSpinControl, AbstractMenu, TextStyle, AbstractTextTimedMenu
 
 
-def build_font(size, style):
+def _build_font(size, style):
     font = PySide6.QtGui.QFont('Helvetica', size)
     if style is TextStyle.BOLD:
         font.setBold(True)
@@ -22,7 +22,11 @@ def build_font(size, style):
     return font
 
 
-class Widget(AbstractWidget):
+def _rgb2hex(r, g, b, *args):
+    return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
+
+class _Widget(AbstractWidget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -37,7 +41,7 @@ class Widget(AbstractWidget):
         self.setVisible(not self._is_hidden)
 
 
-class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
+class _MouseEventsWidget(AbstractMouseEventsWidget, _Widget):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -88,19 +92,19 @@ class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
         self.on_mouse_leave(self)
 
 
-class LabelledWidget(AbstractLabelledWidget, Widget):
+class _LabelledWidget(AbstractLabelledWidget, _Widget):
 
     @property
     def label(self):
-        return super(LabelledWidget, LabelledWidget).label.__get__(self)
+        return super(_LabelledWidget, _LabelledWidget).label.__get__(self)
 
     @label.setter
     def label(self, label):
-        super(LabelledWidget, LabelledWidget).label.__set__(self, label)
-        self.setText(super(LabelledWidget, LabelledWidget).label.__get__(self))
+        super(_LabelledWidget, _LabelledWidget).label.__set__(self, label)
+        self.setText(super(_LabelledWidget, _LabelledWidget).label.__get__(self))
 
 
-class Button(AbstractButton, LabelledWidget, PySide6.QtWidgets.QPushButton):
+class Button(AbstractButton, _LabelledWidget, PySide6.QtWidgets.QPushButton):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QPushButton.__init__(self, parent=panel)
@@ -111,7 +115,7 @@ class Button(AbstractButton, LabelledWidget, PySide6.QtWidgets.QPushButton):
         self.on_click(self)
 
 
-class CheckBox(AbstractCheckBox, LabelledWidget, PySide6.QtWidgets.QCheckBox):
+class CheckBox(AbstractCheckBox, _LabelledWidget, PySide6.QtWidgets.QCheckBox):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QCheckBox.__init__(self, parent=panel)
@@ -181,7 +185,7 @@ class RadioBox(AbstractRadioBox, PySide6.QtWidgets.QGroupBox):
         self._button_group.buttons()[index].setText(self._choices[index])
 
 
-class Bitmap(AbstractBitmap, MouseEventsWidget, PySide6.QtWidgets.QLabel):
+class Bitmap(AbstractBitmap, _MouseEventsWidget, PySide6.QtWidgets.QLabel):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QLabel.__init__(self, panel)
@@ -201,63 +205,59 @@ class Bitmap(AbstractBitmap, MouseEventsWidget, PySide6.QtWidgets.QLabel):
             self.setFixedSize(self._image_qt.size())
 
 
-def rgb2hex(r, g, b, *args):
-    return "#{:02x}{:02x}{:02x}".format(r, g, b)
-
-
-class TextWidget(AbstractText):
+class _TextWidget(AbstractText):
 
     @property
     def font_style(self):
-        return super(TextWidget, TextWidget).font_style.__get__(self)
+        return super(_TextWidget, _TextWidget).font_style.__get__(self)
 
     @font_style.setter
     def font_style(self, font_style):
-        super(TextWidget, TextWidget).font_style.__set__(self, font_style)
-        self.setFont(build_font(self.font_size, self.font_style))
+        super(_TextWidget, _TextWidget).font_style.__set__(self, font_style)
+        self.setFont(_build_font(self.font_size, self.font_style))
 
     @property
     def font_size(self):
-        return super(TextWidget, TextWidget).font_size.__get__(self)
+        return super(_TextWidget, _TextWidget).font_size.__get__(self)
 
     @font_size.setter
     def font_size(self, font_size):
-        super(TextWidget, TextWidget).font_size.__set__(self, font_size)
-        self.setFont(build_font(self.font_size, self.font_style))
+        super(_TextWidget, _TextWidget).font_size.__set__(self, font_size)
+        self.setFont(_build_font(self.font_size, self.font_style))
 
     @property
     def foreground_color(self):
-        return super(TextWidget, TextWidget).foreground_color.__get__(self)
+        return super(_TextWidget, _TextWidget).foreground_color.__get__(self)
 
     @foreground_color.setter
     def foreground_color(self, foreground_color):
-        super(TextWidget, TextWidget).foreground_color.__set__(self, foreground_color)
+        super(_TextWidget, _TextWidget).foreground_color.__set__(self, foreground_color)
         self._set_style_sheet()
 
     @property
     def background_color(self):
-        return super(TextWidget, TextWidget).background_color.__get__(self)
+        return super(_TextWidget, _TextWidget).background_color.__get__(self)
 
     @background_color.setter
     def background_color(self, background_color):
-        super(TextWidget, TextWidget).background_color.__set__(self, background_color)
+        super(_TextWidget, _TextWidget).background_color.__set__(self, background_color)
         self._set_style_sheet()
 
     def _set_style_sheet(self):
         if self.foreground_color:
-            color_string = rgb2hex(*self.foreground_color)
+            color_string = _rgb2hex(*self.foreground_color)
             foreground_style = 'color : %s;' % color_string
         else:
             foreground_style = ''
         if self.background_color:
-            color_string = rgb2hex(*self.background_color)
+            color_string = _rgb2hex(*self.background_color)
             background_style = 'background-color : %s;' % color_string
         else:
             background_style = ''
         self.setStyleSheet('QLabel { %s %s }' % (foreground_style, background_style))
 
 
-class TextControl(TextWidget, LabelledWidget, PySide6.QtWidgets.QLineEdit):
+class TextControl(_TextWidget, _LabelledWidget, PySide6.QtWidgets.QLineEdit):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QLineEdit.__init__(self, panel)
@@ -274,14 +274,14 @@ class TextControl(TextWidget, LabelledWidget, PySide6.QtWidgets.QLineEdit):
         self.setText(super(TextControl, TextControl).label.__get__(self))
 
 
-class Text(TextWidget, LabelledWidget, MouseEventsWidget, PySide6.QtWidgets.QLabel):
+class Text(_TextWidget, _LabelledWidget, _MouseEventsWidget, PySide6.QtWidgets.QLabel):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QLabel.__init__(self, panel)
         super().__init__(**kwargs)
 
 
-class Calendar(AbstractCalendar, Widget, PySide6.QtWidgets.QCalendarWidget):
+class Calendar(AbstractCalendar, _Widget, PySide6.QtWidgets.QCalendarWidget):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QCalendarWidget.__init__(self, panel)
@@ -349,18 +349,15 @@ class Calendar(AbstractCalendar, Widget, PySide6.QtWidgets.QCalendarWidget):
         date_as_tuple = super(Calendar, Calendar).selected_date.__get__(self).timetuple()
         self.setSelectedDate(PySide6.QtCore.QDate(date_as_tuple[0], date_as_tuple[1], date_as_tuple[2]))
 
-    def set_language(self, language):
-        if language == 'English':
-            self.setLocale(PySide6.QtCore.QLocale.English)
-        elif language == 'Italiano':
-            self.setLocale(PySide6.QtCore.QLocale.Italian)
-        elif language == 'Deutsch':
-            self.setLocale(PySide6.QtCore.QLocale.German)
+    def set_language(self, language_code):
+        language = PySide6.QtCore.QLocale.codeToLanguage(language_code)
+        if language is not PySide6.QtCore.QLocale.Language.AnyLanguage:
+            self.setLocale(language)
         else:
-            self.setLocale(PySide6.QtCore.QLocale.English)
+            self.setLocale(PySide6.QtCore.QLocale.Language.English)
 
 
-class SpinControl(AbstractSpinControl, Widget, PySide6.QtWidgets.QSpinBox):
+class SpinControl(AbstractSpinControl, _Widget, PySide6.QtWidgets.QSpinBox):
 
     def __init__(self, panel, **kwargs):
         PySide6.QtWidgets.QSpinBox.__init__(self, panel)
@@ -402,7 +399,7 @@ class SpinControl(AbstractSpinControl, Widget, PySide6.QtWidgets.QSpinBox):
         self.setValue(super(SpinControl, SpinControl).value.__get__(self))
 
 
-class Menu(AbstractMenu, Widget, PySide6.QtWidgets.QMenu):
+class Menu(AbstractMenu, _Widget, PySide6.QtWidgets.QMenu):
 
     def __init__(self, parent, **kwargs):
         PySide6.QtWidgets.QMenu.__init__(self)
@@ -420,7 +417,7 @@ class Menu(AbstractMenu, Widget, PySide6.QtWidgets.QMenu):
         if item is None:
             return
         elif isinstance(item, Menu):
-            item.build_menu(inherited_on_click=self.on_click)
+            item._build_menu(inherited_on_click=self.on_click)
             item.setTitle(item.label)
             menubar.addMenu(item)
             entry = item
@@ -442,7 +439,7 @@ class Menu(AbstractMenu, Widget, PySide6.QtWidgets.QMenu):
         if item == self.SEPARATOR:
             entry = self.addSeparator()
         elif isinstance(item, Menu):
-            item.build_menu(inherited_on_click=self.on_click)
+            item._build_menu(inherited_on_click=self.on_click)
             item.setTitle(item.label)
             self.addMenu(item)
             entry = item

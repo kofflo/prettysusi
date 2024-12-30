@@ -2,6 +2,8 @@ from enum import Enum, auto
 import datetime
 from threading import Timer
 
+from .. import BaseClass
+
 
 class TextStyle(Enum):
     NORMAL = auto()
@@ -10,7 +12,7 @@ class TextStyle(Enum):
     BOLD_ITALIC = auto()
 
 
-class AbstractWidget:
+class AbstractWidget(BaseClass):
 
     def __init__(self, *, is_enabled=True, is_hidden=False):
         self._is_enabled = is_enabled
@@ -100,21 +102,20 @@ class AbstractCheckBox(AbstractButton):
         self._value = value
 
 
-class AbstractRadioBox(AbstractLabelledWidget):
+class AbstractRadioBox(AbstractButton):
 
-    def __init__(self, *, choices=None, num_choices=1, selection=0,  on_click=None, **kwargs):
+    def __init__(self, *, choices=None, num_choices=1, selection=0,  **kwargs):
         super().__init__(**kwargs)
         if choices is None:
-            self._choices = [''] * num_choices
+            self._choices = [''] * max(num_choices, 1)
+        elif len(choices) == 0:
+            self._choices = ['']
         else:
             self._choices = choices
-        self._selection = selection
-        if on_click is not None:
-            self.on_click = on_click
-
-    def on_click(self, obj):
-        #
-        pass
+        if 0 <= selection < len(self._choices):
+            self._selection = selection
+        else:
+            self._selection = 0
 
     @property
     def selection(self):
@@ -130,7 +131,7 @@ class AbstractRadioBox(AbstractLabelledWidget):
             self._choices[index] = string
 
 
-class AbstractBitmap:
+class AbstractBitmap(AbstractMouseEventsWidget):
 
     def __init__(self, *, bitmap=None, **kwargs):
         self.bitmap = bitmap
@@ -145,7 +146,7 @@ class AbstractBitmap:
         self._bitmap = bitmap
 
 
-class AbstractText(AbstractLabelledWidget):
+class AbstractText(AbstractLabelledWidget, AbstractMouseEventsWidget):
 
     def __init__(self, *, font_style=TextStyle.NORMAL, font_size=9,
                  foreground_color=None, background_color=None,
@@ -193,7 +194,7 @@ class AbstractText(AbstractLabelledWidget):
 
 class AbstractCalendar(AbstractWidget):
 
-    def __init__(self, *, lower_date=None, upper_date=None, selected_date=None, **kwargs):
+    def __init__(self, *, lower_date=None, upper_date=None, selected_date=None, on_date_changed=None, **kwargs):
         super().__init__(**kwargs)
         if selected_date is None:
             selected_date = datetime.date.today()
@@ -202,6 +203,8 @@ class AbstractCalendar(AbstractWidget):
         self.lower_date = lower_date
         self.upper_date = upper_date
         self.selected_date = selected_date
+        if on_date_changed is not None:
+            self.on_date_changed = on_date_changed
 
     @property
     def lower_date(self):
@@ -239,23 +242,22 @@ class AbstractCalendar(AbstractWidget):
         #
         pass
 
-    def set_language(self, language):
+    def set_language(self, language_code):
         #
         pass
 
 
 class AbstractSpinControl(AbstractWidget):
 
-    def __init__(self, *, min_value=None, max_value=None, value=0, **kwargs):
+    def __init__(self, *, min_value=None, max_value=None, value=0, on_click=None, **kwargs):
         super().__init__(**kwargs)
         self._value = value
         self._max_value = max_value
         self.min_value = min_value
         self.max_value = max_value
         self.value = value
-
-    def enable(self, is_enabled):
-        self._is_enabled = is_enabled
+        if on_click is not None:
+            self.on_click = on_click
 
     @property
     def min_value(self):
@@ -317,7 +319,7 @@ class AbstractMenu(AbstractLabelledWidget):
     def append(self, item, enabled=True, on_item_click=None):
         self._items.append((item, enabled, on_item_click))
 
-    def build_menu(self, menubar=None, inherited_on_click=None):
+    def _build_menu(self, menubar=None, inherited_on_click=None):
         if self._inherit is True and inherited_on_click is not None:
             self.on_click = inherited_on_click
         for menu_id, value in enumerate(self._items):
@@ -338,7 +340,7 @@ class AbstractMenu(AbstractLabelledWidget):
         pass
 
     def pop_up(self):
-        self.build_menu()
+        self._build_menu()
 
     def get_item_label(self, item_id):
         return self._return_items[item_id]

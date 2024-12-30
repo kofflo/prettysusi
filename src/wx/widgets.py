@@ -6,7 +6,7 @@ from ..abstract.widgets import AbstractWidget, AbstractMouseEventsWidget, Abstra
     AbstractText, AbstractCalendar, AbstractSpinControl, AbstractMenu, TextStyle, AbstractTextTimedMenu
 
 
-def build_font(size, style):
+def _build_font(size, style):
     font = wx.Font(wx.FontInfo(size))
     if style is TextStyle.BOLD:
         font = font.Bold()
@@ -17,7 +17,15 @@ def build_font(size, style):
     return font
 
 
-class Widget(AbstractWidget):
+def _pil_2_wx(image):
+    width, height = image.size
+    if image.mode == 'RGBA':
+        return wx.Bitmap.FromBufferAndAlpha(width, height, image.tobytes('raw', 'RGB'), image.tobytes('raw', 'A'))
+    else:
+        return wx.Bitmap.FromBuffer(width, height, image.tobytes())
+
+
+class _Widget(AbstractWidget):
 
     def enable(self, is_enabled):
         super().enable(is_enabled)
@@ -28,7 +36,7 @@ class Widget(AbstractWidget):
         self.Show(not self._is_hidden)
 
 
-class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
+class _MouseEventsWidget(AbstractMouseEventsWidget, _Widget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -73,19 +81,19 @@ class MouseEventsWidget(AbstractMouseEventsWidget, Widget):
         self.on_mouse_leave(self)
 
 
-class LabelledWidget(AbstractLabelledWidget, Widget):
+class _LabelledWidget(AbstractLabelledWidget, _Widget):
 
     @property
     def label(self):
-        return super(LabelledWidget, LabelledWidget).label.__get__(self)
+        return super(_LabelledWidget, _LabelledWidget).label.__get__(self)
 
     @label.setter
     def label(self, label):
-        super(LabelledWidget, LabelledWidget).label.__set__(self, label)
-        self.SetLabel(super(LabelledWidget, LabelledWidget).label.__get__(self))
+        super(_LabelledWidget, _LabelledWidget).label.__set__(self, label)
+        self.SetLabel(super(_LabelledWidget, _LabelledWidget).label.__get__(self))
 
 
-class Button(AbstractButton, LabelledWidget, wx.Button):
+class Button(AbstractButton, _LabelledWidget, wx.Button):
 
     def __init__(self, panel, **kwargs):
         wx.Button.__init__(self, panel)
@@ -96,7 +104,7 @@ class Button(AbstractButton, LabelledWidget, wx.Button):
         self.on_click(self)
 
 
-class CheckBox(AbstractCheckBox, LabelledWidget, wx.CheckBox):
+class CheckBox(AbstractCheckBox, _LabelledWidget, wx.CheckBox):
 
     def __init__(self, panel, **kwargs):
         wx.CheckBox.__init__(self, panel)
@@ -117,7 +125,7 @@ class CheckBox(AbstractCheckBox, LabelledWidget, wx.CheckBox):
         self.SetValue(super(CheckBox, CheckBox).value.__get__(self))
 
 
-class RadioBox(AbstractRadioBox, LabelledWidget, wx.RadioBox):
+class RadioBox(AbstractRadioBox, _LabelledWidget, wx.RadioBox):
 
     def __init__(self, panel, **kwargs):
         wx.RadioBox.__init__(self)
@@ -146,24 +154,16 @@ class RadioBox(AbstractRadioBox, LabelledWidget, wx.RadioBox):
 
     @property
     def label(self):
-        return super(LabelledWidget, LabelledWidget).label.__get__(self)
+        return super(_LabelledWidget, _LabelledWidget).label.__get__(self)
 
     @label.setter
     def label(self, label):
-        super(LabelledWidget, LabelledWidget).label.__set__(self, label)
+        super(_LabelledWidget, _LabelledWidget).label.__set__(self, label)
         if self._created:
-            self.SetLabel(super(LabelledWidget, LabelledWidget).label.__get__(self))
+            self.SetLabel(super(_LabelledWidget, _LabelledWidget).label.__get__(self))
 
 
-def pil_2_wx(image):
-    width, height = image.size
-    if image.mode == 'RGBA':
-        return wx.Bitmap.FromBufferAndAlpha(width, height, image.tobytes('raw', 'RGB'), image.tobytes('raw', 'A'))
-    else:
-        return wx.Bitmap.FromBuffer(width, height, image.tobytes())
-
-
-class Bitmap(AbstractBitmap, MouseEventsWidget, wx.StaticBitmap):
+class Bitmap(AbstractBitmap, _MouseEventsWidget, wx.StaticBitmap):
 
     def __init__(self, panel, **kwargs):
         wx.StaticBitmap.__init__(self, panel)
@@ -177,36 +177,36 @@ class Bitmap(AbstractBitmap, MouseEventsWidget, wx.StaticBitmap):
     def bitmap(self, bitmap):
         super(Bitmap, Bitmap).bitmap.__set__(self, bitmap)
         if self.bitmap is not None:
-            self.SetBitmap(pil_2_wx(self.bitmap))
+            self.SetBitmap(_pil_2_wx(self.bitmap))
 
 
-class TextWidget(AbstractText):
+class _TextWidget(AbstractText):
 
     @property
     def font_style(self):
-        return super(TextWidget, TextWidget).font_style.__get__(self)
+        return super(_TextWidget, _TextWidget).font_style.__get__(self)
 
     @font_style.setter
     def font_style(self, font_style):
-        super(TextWidget, TextWidget).font_style.__set__(self, font_style)
-        self.SetFont(build_font(self.font_size, self.font_style))
+        super(_TextWidget, _TextWidget).font_style.__set__(self, font_style)
+        self.SetFont(_build_font(self.font_size, self.font_style))
 
     @property
     def font_size(self):
-        return super(TextWidget, TextWidget).font_size.__get__(self)
+        return super(_TextWidget, _TextWidget).font_size.__get__(self)
 
     @font_size.setter
     def font_size(self, font_size):
-        super(TextWidget, TextWidget).font_size.__set__(self, font_size)
-        self.SetFont(build_font(self.font_size, self.font_style))
+        super(_TextWidget, _TextWidget).font_size.__set__(self, font_size)
+        self.SetFont(_build_font(self.font_size, self.font_style))
 
     @property
     def foreground_color(self):
-        return super(TextWidget, TextWidget).foreground_color.__get__(self)
+        return super(_TextWidget, _TextWidget).foreground_color.__get__(self)
 
     @foreground_color.setter
     def foreground_color(self, foreground_color):
-        super(TextWidget, TextWidget).foreground_color.__set__(self, foreground_color)
+        super(_TextWidget, _TextWidget).foreground_color.__set__(self, foreground_color)
         if self.foreground_color:
             self.SetForegroundColour(self.foreground_color)
         else:
@@ -214,18 +214,18 @@ class TextWidget(AbstractText):
 
     @property
     def background_color(self):
-        return super(TextWidget, TextWidget).background_color.__get__(self)
+        return super(_TextWidget, _TextWidget).background_color.__get__(self)
 
     @background_color.setter
     def background_color(self, background_color):
-        super(TextWidget, TextWidget).background_color.__set__(self, background_color)
+        super(_TextWidget, _TextWidget).background_color.__set__(self, background_color)
         if self.background_color:
             self.SetBackgroundColour(self.background_color)
         else:
             self.SetBackgroundColour(wx.NullColour)
 
 
-class TextControl(TextWidget, LabelledWidget, wx.TextCtrl):
+class TextControl(_TextWidget, _LabelledWidget, wx.TextCtrl):
 
     def __init__(self, panel, **kwargs):
         wx.TextCtrl.__init__(self, panel)
@@ -242,17 +242,17 @@ class TextControl(TextWidget, LabelledWidget, wx.TextCtrl):
         self.SetValue(super(TextControl, TextControl).label.__get__(self))
 
 
-class Text(TextWidget, MouseEventsWidget, LabelledWidget, wx.StaticText):
+class Text(_TextWidget, _MouseEventsWidget, _LabelledWidget, wx.StaticText):
 
     def __init__(self, panel, **kwargs):
         wx.StaticText.__init__(self, panel)
         super().__init__(**kwargs)
 
 
-class Calendar(AbstractCalendar, Widget, wx.adv.CalendarCtrl):
+class Calendar(AbstractCalendar, _Widget, wx.adv.GenericCalendarCtrl):
 
     def __init__(self, panel, **kwargs):
-        wx.adv.CalendarCtrl.__init__(self, panel, style=wx.adv.CAL_MONDAY_FIRST)
+        wx.adv.GenericCalendarCtrl.__init__(self, panel, style=wx.adv.CAL_MONDAY_FIRST)
         super().__init__(**kwargs)
         self.Bind(wx.adv.EVT_CALENDAR_SEL_CHANGED, self._on_date_changed)
 
@@ -303,8 +303,12 @@ class Calendar(AbstractCalendar, Widget, wx.adv.CalendarCtrl):
         date_as_tuple = super(Calendar, Calendar).selected_date.__get__(self).timetuple()
         self.SetDate(wx.DateTime.FromDMY(date_as_tuple[2], date_as_tuple[1] - 1, date_as_tuple[0]))
 
+    def set_language(self, language_code):
+        # Not supported by WxPython
+        pass
 
-class SpinControl(AbstractSpinControl, Widget, wx.SpinCtrl):
+
+class SpinControl(AbstractSpinControl, _Widget, wx.SpinCtrl):
 
     def __init__(self, panel, **kwargs):
         wx.SpinCtrl.__init__(self, panel, style=wx.SP_ARROW_KEYS)
@@ -347,7 +351,7 @@ class SpinControl(AbstractSpinControl, Widget, wx.SpinCtrl):
         self.SetValue(super(SpinControl, SpinControl).value.__get__(self))
 
 
-class Menu(AbstractMenu, Widget, wx.Menu):
+class Menu(AbstractMenu, _Widget, wx.Menu):
 
     def __init__(self, parent, **kwargs):
         wx.Menu.__init__(self)
@@ -368,7 +372,7 @@ class Menu(AbstractMenu, Widget, wx.Menu):
         if item == self.SEPARATOR:
             return
         elif isinstance(item, Menu):
-            item.build_menu(inherited_on_click=self.on_click)
+            item._build_menu(inherited_on_click=self.on_click)
             menubar.Append(item, item.label)
             menubar.EnableTop(menubar.GetMenuCount() - 1, is_enabled)
         else:
@@ -384,7 +388,7 @@ class Menu(AbstractMenu, Widget, wx.Menu):
         if item == self.SEPARATOR:
             entry = self.Append(wx.ID_SEPARATOR)
         elif isinstance(item, Menu):
-            item.build_menu(inherited_on_click=self.on_click)
+            item._build_menu(inherited_on_click=self.on_click)
             entry = self.AppendSubMenu(item, item.label)
         else:
             entry = self.Append(wx.ID_ANY, item)

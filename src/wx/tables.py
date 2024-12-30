@@ -1,14 +1,14 @@
 import wx.grid
 
 from ..abstract.tables import Align, TextStyle, Renderer, AbstractGrid
-from .widgets import Widget
+from .widgets import _Widget
 
 
-class GridTable(wx.grid.GridTableBase):
+class _GridTable(wx.grid.GridTableBase):
     pass
 
 
-class Grid(AbstractGrid, Widget, wx.grid.Grid):
+class Grid(AbstractGrid, _Widget, wx.grid.Grid):
 
     def __init__(self, panel):
         super().__init__()
@@ -39,7 +39,7 @@ class Grid(AbstractGrid, Widget, wx.grid.Grid):
         self.GetGridWindow().Bind(wx.EVT_MOTION, self._on_motion)
 
     def _get_grid_table(self):
-        grid_table = GridTable()
+        grid_table = _GridTable()
         grid_table.GetNumberRows = self._get_number_rows
         grid_table.GetNumberCols = self._get_number_cols
         grid_table.GetValue = self._get_value

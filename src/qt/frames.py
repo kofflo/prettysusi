@@ -3,12 +3,12 @@ import PySide6.QtWidgets
 import PySide6.QtCore
 import PySide6.QtGui
 
-from ..abstract.frames import AbstractIconFrame, FrameStyle, CursorStyle, AbstractDialog, AbstractMessageDialog
+from ..abstract.frames import AbstractFrame, FrameStyle, CursorStyle, AbstractDialog, AbstractMessageDialog
 
 
-class Frame(AbstractIconFrame, PySide6.QtWidgets.QMainWindow):
+class Frame(AbstractFrame, PySide6.QtWidgets.QMainWindow):
 
-    def __init__(self, *, parent, pos=None, size=None, **kwargs):
+    def __init__(self, *, parent=None, pos=None, size=None, **kwargs):
 
         PySide6.QtWidgets.QMainWindow.__init__(self)
 
@@ -31,15 +31,13 @@ class Frame(AbstractIconFrame, PySide6.QtWidgets.QMainWindow):
         if pos is not None:
             self.move(*pos)
 
-        super().__init__(parent=parent, **kwargs)
-        self._size = size
         self._panel = self
-        self._create_widgets(self._panel)
+        self._parent = PySide6.QtWidgets.QWidget()
+        self._size = size
+        self.setCentralWidget(self._parent)
 
-        central_widget = PySide6.QtWidgets.QWidget()
-        self._create_menu()
-        self._create_gui().create_layout(central_widget)
-        self.setCentralWidget(central_widget)
+        super().__init__(parent=parent, **kwargs)
+
 
     def event_connect(self, event, on_event):
         event.connect(lambda kwargs: on_event(**kwargs))
@@ -48,18 +46,8 @@ class Frame(AbstractIconFrame, PySide6.QtWidgets.QMainWindow):
         event.emit(kwargs)
 
     def closeEvent(self, event):
-        self.detach()
-        for child in self.child_views:
-            child.close()
-        self.on_close(self)
+        self._close_operations()
         super().closeEvent(event)
-
-    def _create_menu(self):
-        #
-        pass
-
-    def _create_gui(self):
-        raise NotImplementedError
 
     @property
     def title(self):
@@ -83,19 +71,15 @@ class Frame(AbstractIconFrame, PySide6.QtWidgets.QMainWindow):
 
     def show(self):
         PySide6.QtWidgets.QMainWindow.show(self)
-        self._refresh_widgets()
+#        self._refresh_widgets()
 
-    def close(self):
+    def _command_close(self):
         PySide6.QtWidgets.QMainWindow.close(self)
 
     def _set_menubar(self, menu):
         menubar = self.menuBar()
         menubar.clear()
-        menu.build_menu(menubar=menubar)
-
-    def _fit_frame(self):
-        #
-        pass
+        menu._build_menu(menubar=menubar)
 
     def _set_cursor(self, cursor):
         if cursor is CursorStyle.SIZING:
@@ -109,12 +93,12 @@ class Frame(AbstractIconFrame, PySide6.QtWidgets.QMainWindow):
 
 class Dialog(AbstractDialog, PySide6.QtWidgets.QDialog):
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, *, parent, **kwargs):
         PySide6.QtWidgets.QDialog.__init__(self, parent)
+        self._panel = self
+        self._parent = self
         super().__init__(**kwargs)
         self.setWindowFlags(self.windowFlags() & ~PySide6.QtGui.Qt.WindowContextHelpButtonHint)
-        self._create_widgets(self)
-        self._create_gui().create_layout(self)
 
     def __enter__(self):
         return self
@@ -132,7 +116,6 @@ class Dialog(AbstractDialog, PySide6.QtWidgets.QDialog):
         self.setWindowTitle(title)
 
     def show_modal(self):
-        self.update_gui({})
         self.layout().setSizeConstraint(PySide6.QtWidgets.QLayout.SetFixedSize)
         self.exec()
         return self._return_value
@@ -148,10 +131,10 @@ class Dialog(AbstractDialog, PySide6.QtWidgets.QDialog):
 
 class MessageDialog(AbstractMessageDialog, PySide6.QtWidgets.QMessageBox):
 
-    def __init__(self, parent, message, title):
+    def __init__(self, *, parent, **kwargs):
         PySide6.QtWidgets.QMessageBox.__init__(self, parent)
-        self.setIcon(self.Critical)
-        super().__init__(message, title=title)
+        self.setIcon(PySide6.QtWidgets.QMessageBox.Critical)
+        super().__init__(**kwargs)
 
     def __enter__(self):
         return self
@@ -178,6 +161,5 @@ class MessageDialog(AbstractMessageDialog, PySide6.QtWidgets.QMessageBox):
         self.setText(message)
 
     def show_modal(self):
-        self.update_gui({})
         self.exec()
-        return self.result() == self.Accepted
+        return self.result() == PySide6.QtWidgets.QMessageBox.Accepted

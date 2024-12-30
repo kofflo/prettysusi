@@ -92,16 +92,13 @@ class AbstractGrid(AbstractWidget):
     def _set_row_size(self, row, size):
         raise NotImplementedError
 
+    def _set_row_sizes(self, size):
+        raise NotImplementedError
+
     def _set_col_size(self, col, size):
         raise NotImplementedError
 
-    def _set_row_label_size(self, size):
-        raise NotImplementedError
-
-    def _set_col_label_size(self, size):
-        raise NotImplementedError
-
-    def update_data(self, **kwargs):
+    def _set_col_sizes(self, size):
         raise NotImplementedError
 
     def on_cell_left_click(self, obj, row, col):
@@ -153,10 +150,6 @@ class AbstractGrid(AbstractWidget):
 
     def unfreeze_cols_width(self):
         self._col_widths = None
-
-    def update_for_language(self):
-        #
-        pass
 
     def refresh(self):
         raise NotImplementedError

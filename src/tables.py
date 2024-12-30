@@ -1,3 +1,5 @@
+# PrettySUsI library: entry point for import of table classes (Grid)
+
 from . import gui_type, initialize_error_message
 
 if gui_type is None:
