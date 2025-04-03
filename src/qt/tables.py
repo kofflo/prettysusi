@@ -2,7 +2,7 @@ import PySide6.QtWidgets
 import PySide6.QtCore
 import PySide6.QtGui
 
-from ..abstract.tables import Align, TextStyle, Renderer, AbstractGrid
+from ..abstract.tables import Align, TextStyle, Renderer, AbstractTable
 from .widgets import _Widget, _rgb2hex
 
 _UNCHECKED_BOX_SYMBOL = '\u2610'
@@ -10,12 +10,33 @@ _CHECKED_BOX_SYMBOL = '\u2611'
 
 
 class _GridTable(PySide6.QtCore.QAbstractTableModel):
-    pass
+    """Class defining the table model whose data is used to fill the table."""
+
+    def __init__(self, get_row_count, get_column_count, get_data, get_header_data):
+        """
+        Initialize the grid table, linking the table functions (which in turn are linked to the user-defined functions)
+        to the grid table.
+
+        :param get_row_count: function providing the number of rows of the table
+        :param get_column_count:  function providing the number of columns of the table
+        :param get_data: function providing the data of the table
+        :param get_header_data: function providing the data of the table header
+        """
+        super().__init__()
+        self.rowCount = get_row_count
+        self.columnCount = get_column_count
+        self.data = get_data
+        self.headerData = get_header_data
 
 
 class _TableHeader(PySide6.QtWidgets.QHeaderView):
+    """Class defining the header of the table."""
 
     def mousePressEvent(self, event):
+        """Manage the mouse press event on the table header.
+
+        :param event: the mouse event object
+        """
         button = event.button()
         index = self.logicalIndexAt(event.pos())
         if self.orientation() is PySide6.QtGui.Qt.Horizontal:
@@ -25,26 +46,35 @@ class _TableHeader(PySide6.QtWidgets.QHeaderView):
             row = index
             col = -1
         if button is PySide6.QtCore.Qt.LeftButton:
-            self.parent().on_label_left_click(self.parent(), row, col)
+            self.parent().on_header_left_click(self.parent(), row, col)
         elif button is PySide6.QtCore.Qt.RightButton:
-            self.parent().on_label_right_click(self.parent(), row, col)
+            self.parent().on_header_right_click(self.parent(), row, col)
 
     def mouseDoubleClickEvent(self, event):
+        """Manage the mouse double click event on the table header.
+
+        :param event: the mouse event object
+        """
         button = event.button()
         index = self.indexAt(event.pos())
         row = index.row()
         col = index.column()
         if button is PySide6.QtCore.Qt.LeftButton:
-            self.parent().on_label_left_double_click(self.parent(), row, col)
+            self.parent().on_header_left_double_click(self.parent(), row, col)
         elif button is PySide6.QtCore.Qt.RightButton:
-            self.parent().on_label_right_double_click(self.parent(), row, col)
+            self.parent().on_header_right_double_click(self.parent(), row, col)
 
 
-class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
+class Table(AbstractTable, _Widget, PySide6.QtWidgets.QTableView):
+    """Table based on PySide6. A table is a widget used to display data in a two dimensional grid."""
 
-    def __init__(self, panel):
-        PySide6.QtWidgets.QTableView.__init__(self, panel)
-        super().__init__()
+    def __init__(self, **kwargs):
+        """Initialize the table.
+
+        :param kwargs: additional parameters for superclass
+        """
+        PySide6.QtWidgets.QTableView.__init__(self, kwargs['parent']._WindowClass__panel)
+        super().__init__(**kwargs)
         self.setHorizontalHeader(_TableHeader(PySide6.QtGui.Qt.Horizontal, self))
         self.setVerticalHeader(_TableHeader(PySide6.QtGui.Qt.Vertical, self))
 
@@ -69,9 +99,10 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
             Align.CENTER: int(PySide6.QtCore.Qt.AlignCenter),
             Align.RIGHT: int(PySide6.QtCore.Qt.AlignRight | PySide6.QtCore.Qt.AlignVCenter),
         }
-        self._grid_table = self._get_grid_table()
+        self._grid_table = _GridTable(self._get_row_count, self._get_column_count,
+                                      self._get_data, self._get_header_data)
 
-        color_string = _rgb2hex(*self._get_header_colour()[1])
+        color_string = _rgb2hex(*self._get_header_color()[1])
         header_stylesheet = "::section{Background-color : %s}" % color_string
         self.horizontalHeader().setStyleSheet(header_stylesheet)
         self.verticalHeader().setStyleSheet(header_stylesheet)
@@ -86,21 +117,29 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
         self.setFocusPolicy(PySide6.QtCore.Qt.NoFocus)
         self.setSizePolicy(PySide6.QtWidgets.QSizePolicy.Minimum, PySide6.QtWidgets.QSizePolicy.Minimum)
 
-    def _get_grid_table(self):
-        grid_table = _GridTable()
-        grid_table.rowCount = self._get_row_count
-        grid_table.columnCount = self._get_column_count
-        grid_table.data = self._get_data
-        grid_table.headerData = self._get_header_data
-        return grid_table
+    def _get_row_count(self, _index):
+        """Return the number of rows by calling the user-defined function.
 
-    def _get_row_count(self, index):
+        :return: the number of rows of the table
+        """
         return self._get_number_rows()
 
-    def _get_column_count(self, index):
+    def _get_column_count(self, _index):
+        """Return the number of columns by calling the user-defined function.
+
+        :return: the number of columns of the table
+        """
         return self._get_number_cols()
 
     def _get_data(self, index, role):
+        """
+        Return different information used to fill the table; the cell is given by the index and the specific
+        information to be provided as output depends on the role.
+
+        :param index: object which allow to determine the cell whose data is required
+        :param role: enum which determines the specific information to return (value, color, alignment, font)
+        :return: the desired information for the specified cell
+        """
         row = index.row()
         column = index.column()
         renderer = self._get_renderer(row, column)
@@ -113,9 +152,9 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
         elif role == PySide6.QtCore.Qt.FontRole:
             return self._font_dict[self._get_style(row, column)]
         elif role == PySide6.QtCore.Qt.ForegroundRole:
-            return PySide6.QtGui.QColor.fromRgb(*self._get_colour(row, column)[0])
+            return PySide6.QtGui.QColor.fromRgb(*self._get_color(row, column)[0])
         elif role == PySide6.QtCore.Qt.BackgroundRole:
-            return PySide6.QtGui.QColor.fromRgb(*self._get_colour(row, column)[1])
+            return PySide6.QtGui.QColor.fromRgb(*self._get_color(row, column)[1])
         elif role == PySide6.QtCore.Qt.TextAlignmentRole:
             if renderer is Renderer.BOOLEAN:
                 return self._align_dict[Align.CENTER]
@@ -125,17 +164,30 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
             self._set_col_size(column, self._MAX_COL_WIDTH)
 
     def _get_header_data(self, index, orientation, role):
+        """
+        Return different information used to fill the table header; the cell is given by the index and the specific
+        information to be provided as output depends on the role.
+
+        :param index: index of the header cell whose data is required
+        :param orientation: enum which determines if the desired header is the horizontal or the vertical one
+        :param role: enum which determines the specific information to return (value, color, font)
+        :return: the desired information for the specified header cell
+        """
         if role == PySide6.QtCore.Qt.DisplayRole:
             if orientation == PySide6.QtCore.Qt.Horizontal:
-                return self._get_col_label_value(index)
+                return self._get_col_header_value(index)
             elif orientation == PySide6.QtCore.Qt.Vertical:
-                return self._get_row_label_value(index)
+                return self._get_row_header_value(index)
         elif role == PySide6.QtCore.Qt.FontRole:
             return self._qt_font_bold
         elif role == PySide6.QtCore.Qt.ForegroundRole:
-            return PySide6.QtGui.QColor.fromRgb(*self._get_header_colour()[0])
+            return PySide6.QtGui.QColor.fromRgb(*self._get_header_color()[0])
 
     def mousePressEvent(self, event):
+        """Manage the mouse press event on the table.
+
+        :param event: the mouse event object
+        """
         button = event.button()
         index = self.indexAt(event.pos())
         row = index.row()
@@ -148,6 +200,10 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
             self.on_cell_right_click(self, row, col)
 
     def mouseDoubleClickEvent(self, event):
+        """Manage the mouse double click event on the table.
+
+        :param event: the mouse event object
+        """
         button = event.button()
         index = self.indexAt(event.pos())
         row = index.row()
@@ -160,17 +216,18 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
             self.on_cell_right_double_click(self, row, col)
 
     def refresh(self):
+        """Refresh the display of the table."""
         self.setModel(self._grid_table)
         self._grid_table.layoutChanged.emit()
 
-        if self._hide_row_labels:
+        if self._hide_row_headers:
             self.verticalHeader().hide()
-        elif not self._auto_size_row_labels:
-            self.verticalHeader().setFixedWidth(self._ROW_LABEL_WIDTH)
-        if self._hide_col_labels:
+        elif not self._auto_size_row_headers:
+            self.verticalHeader().setFixedWidth(self._ROW_HEADERS_WIDTH)
+        if self._hide_col_headers:
             self.horizontalHeader().hide()
-        elif not self._auto_size_col_labels:
-            self.horizontalHeader().setFixedHeight(self._COL_LABEL_HEIGHT)
+        elif not self._auto_size_col_headers:
+            self.horizontalHeader().setFixedHeight(self._COL_HEADERS_HEIGHT)
         if self._auto_size_rows:
             self.resizeRowsToContents()
         else:
@@ -219,21 +276,49 @@ class Grid(AbstractGrid, _Widget, PySide6.QtWidgets.QTableView):
             self.setMinimumHeight(self._MINIMUM_HEIGHT)
 
     def _get_row_size(self, row):
+        """Return the size (height) of a row.
+
+        :param row: the index of the row
+        :return: the size of the row
+        """
         return self.rowHeight(row)
 
     def _get_col_size(self, col):
+        """Return the size (width) of a column.
+
+        :param row: the index of the column
+        :return: the size of the column
+        """
         return self.columnWidth(col)
 
     def _set_row_size(self, row, size):
+        """Set the size (height) of a row to a specific value.
+
+        :param row: the index of the row
+        :param size: the desired new size of the row
+        """
         self.setRowHeight(row, size)
 
     def _set_row_sizes(self, size):
+        """Set the size (height) of all rows to a specific value.
+
+        :param size: the desired new size of the rows
+        """
         self.verticalHeader().setSectionResizeMode(self.verticalHeader().ResizeMode.Fixed)
         self.verticalHeader().setDefaultSectionSize(size)
 
     def _set_col_size(self, col, size):
+        """Set the size (width) of a column to a specific value.
+
+        :param col: the index of the column
+        :param size: the desired new size of the column
+        """
         self.setColumnWidth(col, size)
 
     def _set_col_sizes(self, size):
+        """Set the size (width) of all columns to a specific value.
+
+        :param size: the desired new size of the columns
+        """
         self.horizontalHeader().setSectionResizeMode(self.horizontalHeader().ResizeMode.Fixed)
         self.horizontalHeader().setDefaultSectionSize(size)

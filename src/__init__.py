@@ -6,8 +6,8 @@ app = None
 event_create = None
 Button, CheckBox, RadioBox, Bitmap, Text, TextControl, \
     Calendar, SpinControl, Menu, TextTimedMenu = [None] * 10
-Grid = None
-Frame, Dialog, MessageDialog = [None] * 3
+Table = None
+Frame, Dialog, ErrorMessageDialog = [None] * 3
 VBoxLayout, HBoxLayout, GridLayout = [None] * 3
 Align = None
 gui_type = None
@@ -59,8 +59,8 @@ def initialize(gui_request):
 
     global app, event_create
     global Button, CheckBox, RadioBox, Bitmap, Text, TextControl, Calendar, SpinControl, Menu, TextTimedMenu
-    global Grid
-    global Frame, Dialog, MessageDialog
+    global Table
+    global Frame, Dialog, ErrorMessageDialog
     global VBoxLayout, HBoxLayout, GridLayout
     global Align
     global gui_type
@@ -81,8 +81,8 @@ def initialize(gui_request):
             from .wx.widgets import Button, CheckBox, RadioBox, Bitmap, Text, TextControl, \
                 Calendar, SpinControl, Menu, TextTimedMenu
             from .wx.layouts import VBoxLayout, HBoxLayout, GridLayout, Align
-            from .wx.frames import Frame, Dialog, MessageDialog
-            from .wx.tables import Grid
+            from .wx.windows import Frame, Dialog, ErrorMessageDialog
+            from .wx.tables import Table
 
             app = App()
             app.run = app.MainLoop
@@ -99,8 +99,8 @@ def initialize(gui_request):
             from .qt import event_create
             from .qt.widgets import Button, CheckBox, RadioBox, Bitmap, Text, TextControl, \
                 Calendar, SpinControl, Menu, TextTimedMenu
-            from .qt.tables import Grid
-            from .qt.frames import Frame, Dialog, MessageDialog
+            from .qt.tables import Table
+            from .qt.windows import Frame, Dialog, ErrorMessageDialog
             from .qt.layouts import VBoxLayout, HBoxLayout, GridLayout, Align
 
             app = QApplication([])
@@ -119,8 +119,8 @@ def initialize(gui_request):
             from .tk import event_create
             from .tk.widgets import Button, CheckBox, RadioBox, Bitmap, Text, TextControl, \
                 Calendar, SpinControl, Menu, TextTimedMenu
-            from .tk.tables import Grid
-            from .tk.frames import Frame, Dialog, MessageDialog
+            from .tk.tables import Table
+            from .tk.windows import Frame, Dialog, ErrorMessageDialog
             from .tk.layouts import VBoxLayout, HBoxLayout, GridLayout, Align
 
             app.withdraw()

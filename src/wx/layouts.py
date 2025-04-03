@@ -4,16 +4,31 @@ from ..abstract.layouts import AbstractBoxLayout, AbstractGridLayout, Align
 
 
 class _Layout:
+    """Superclass for all types of wxPython layout classes (box layouts and grid layout)."""
+
     _BORDER_FLAGS = [wx.TOP, wx.RIGHT, wx.BOTTOM, wx.LEFT]
 
     def _apply_align(self, align):
+        """Compute the alignment flag for a layout cell.
+
+        :param align: the desired alignment (Align enum)
+        :return: the resulting alignment flag
+        """
         if align & Align.EXPAND:
-            flag = wx.EXPAND
+            align_flag = wx.EXPAND
         else:
-            flag = 0
-        return flag
+            align_flag = 0
+        return align_flag
 
     def _apply_border(self, widget, border_tuple, align):
+        """Apply a border around a widget incapsulating it in a BoxSizer if needed.
+
+        :param widget: the widget to which the border is applied
+        :param border_tuple: the tuple defining the borders around the widget
+        :param align: the alignment to apply to the widget
+        :return: a tuple containing the incapsulated widget, the minimum applied border in the four sides and the flag
+        which define in which directions the border is applied
+        """
         min_border = float('inf')
         flag = 0
         for index, b in enumerate(border_tuple):
@@ -36,9 +51,16 @@ class _Layout:
 
 
 class _BoxLayout(AbstractBoxLayout, _Layout):
+    """Superclass for wxPython box layout classes (VBoxLayout and HBoxLayout)."""
+
     _DIRECTION = None
 
-    def _create_layout(self, parent):
+    def _create_layout(self, window):
+        """Create and return a wxPython sizer object.
+
+        :param window: the window object to which the layout is applied (None to create a layout inside another layout)
+        :return: the wxPython sizer object
+        """
         sizer = wx.BoxSizer(self._DIRECTION)
         for widget_dict in self._widgets:
             widget = widget_dict['type']
@@ -64,45 +86,65 @@ class _BoxLayout(AbstractBoxLayout, _Layout):
 
                 sizer.Add(widget, proportion=widget_dict['stretch'], flag=flag, border=widget_border)
 
-        if parent is not None:
-            parent.SetSizer(sizer)
+        if window is not None:
+            window._WindowClass__layout_parent.SetSizer(sizer)
 
         return sizer
 
 
 class VBoxLayout(_BoxLayout):
+    """Vertical box layout based on wxPython: allows to place the widgets in a column."""
+
     _DIRECTION = wx.VERTICAL
 
     def _apply_align(self, align):
-        flag = super()._apply_align(align)
-        if flag == 0:
+        """Compute the alignment flag for a layout cell.
+
+        :param align: the desired alignment (Align enum)
+        :return: the resulting alignment flag
+        """
+        align_flag = super()._apply_align(align)
+        if align_flag == 0:
             if align & Align.LEFT:
-                flag = wx.ALIGN_LEFT
+                align_flag = wx.ALIGN_LEFT
             elif align & Align.HCENTER:
-                flag = wx.ALIGN_CENTER_HORIZONTAL
+                align_flag = wx.ALIGN_CENTER_HORIZONTAL
             elif align & Align.RIGHT:
-                flag = wx.ALIGN_RIGHT
-        return flag
+                align_flag = wx.ALIGN_RIGHT
+        return align_flag
 
 
 class HBoxLayout(_BoxLayout):
+    """Horizontal box layout based on wxPython: allows to place the widgets in a row."""
+
     _DIRECTION = wx.HORIZONTAL
 
     def _apply_align(self, align):
-        flag = super()._apply_align(align)
-        if flag == 0:
+        """Compute the alignment flag for a layout cell.
+
+        :param align: the desired alignment (Align enum)
+        :return: the resulting alignment flag
+        """
+        align_flag = super()._apply_align(align)
+        if align_flag == 0:
             if align & Align.TOP:
-                flag = wx.ALIGN_TOP
+                align_flag = wx.ALIGN_TOP
             elif align & Align.VCENTER:
-                flag = wx.ALIGN_CENTER_VERTICAL
+                align_flag = wx.ALIGN_CENTER_VERTICAL
             elif align & Align.BOTTOM:
-                flag = wx.ALIGN_BOTTOM
-        return flag
+                align_flag = wx.ALIGN_BOTTOM
+        return align_flag
 
 
 class GridLayout(AbstractGridLayout, _Layout):
+    """Grid layout based on wxPython: allows to place the widgets in a two dimensional grid."""
 
-    def _create_layout(self, parent):
+    def _create_layout(self, window):
+        """Create and return a wxPython sizer object.
+
+        :param window: the window object to which the layout is applied (None to create a layout inside another layout)
+        :return: the wxPython sizer object
+        """
         sizer = wx.FlexGridSizer(self._rows, self._cols, self._vgap, self._hgap)
 
         for row in range(self._rows):
@@ -110,7 +152,7 @@ class GridLayout(AbstractGridLayout, _Layout):
                 sizer.AddGrowableRow(row, self._row_stretch[row])
 
         for col in range(self._cols):
-            if self._row_stretch[col] is not None:
+            if self._col_stretch[col] is not None:
                 sizer.AddGrowableCol(col, self._col_stretch[col])
 
         for widgets_row in self._widgets:
@@ -138,23 +180,28 @@ class GridLayout(AbstractGridLayout, _Layout):
 
                     sizer.Add(widget, flag=flag, border=widget_border)
 
-        if parent is not None:
-            parent.SetSizer(sizer)
+        if window is not None:
+            window._WindowClass__layout_parent.SetSizer(sizer)
         return sizer
 
     def _apply_align(self, align):
-        flag = super()._apply_align(align)
-        if flag == 0:
+        """Compute the alignment flag for a layout cell.
+
+        :param align: the desired alignment (Align enum)
+        :return: the resulting alignment flag
+        """
+        align_flag = super()._apply_align(align)
+        if align_flag == 0:
             if align & Align.TOP:
-                flag = wx.ALIGN_TOP
+                align_flag = wx.ALIGN_TOP
             elif align & Align.VCENTER:
-                flag = wx.ALIGN_CENTER_VERTICAL
+                align_flag = wx.ALIGN_CENTER_VERTICAL
             elif align & Align.BOTTOM:
-                flag = wx.ALIGN_BOTTOM
+                align_flag = wx.ALIGN_BOTTOM
             if align & Align.LEFT:
-                flag |= wx.ALIGN_LEFT
+                align_flag |= wx.ALIGN_LEFT
             elif align & Align.HCENTER:
-                flag |= wx.ALIGN_CENTER_HORIZONTAL
+                align_flag |= wx.ALIGN_CENTER_HORIZONTAL
             elif align & Align.RIGHT:
-                flag |= wx.ALIGN_RIGHT
-        return flag
+                align_flag |= wx.ALIGN_RIGHT
+        return align_flag

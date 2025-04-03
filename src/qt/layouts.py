@@ -7,8 +7,15 @@ from ..abstract.layouts import AbstractBoxLayout, AbstractGridLayout, Align
 
 
 class _Layout:
+    """Superclass for all types of PySide6 layout classes (box layouts and grid layout)."""
 
     def _apply_align(self, align, size_policy):
+        """Compute the alignment flag for a layout cell and sets the size policy if needed.
+
+        :param align: the desired alignment (Align enum)
+        :param size_policy: the widget QSizePolicy object (None for a cell containing another layout)
+        :return: the resulting alignment flag
+        """
         align_flag = 0
         if align & Align.EXPAND:
             align_flag = -1
@@ -18,6 +25,8 @@ class _Layout:
 
 
 class _BoxLayout(AbstractBoxLayout, _Layout):
+    """Superclass for PySide6 box layout classes (VBoxLayout and HBoxLayout)."""
+
     _LAYOUT_CLASS = None
     _BEFORE = None
     _AFTER = None
@@ -25,7 +34,12 @@ class _BoxLayout(AbstractBoxLayout, _Layout):
     _ORTO_BEFORE = None
     _ORTO_AFTER = None
 
-    def _create_layout(self, parent):
+    def _create_layout(self, window):
+        """Create and return a PySide6 layout object.
+
+        :param window: the window object to which the layout is applied (None to create a layout inside another layout)
+        :return: the PySide6 layout object
+        """
         layout = self._LAYOUT_CLASS()
         layout.setSpacing(0)
         for widget_dict in self._widgets:
@@ -65,13 +79,15 @@ class _BoxLayout(AbstractBoxLayout, _Layout):
                     layout.addLayout(border_layout, stretch=widget_dict['stretch'])
                     layout.addSpacing(widget_border[self._AFTER])
 
-        if parent is not None:
-            parent.setLayout(layout)
+        if window is not None:
+            window._WindowClass__layout_parent.setLayout(layout)
 
         return layout
 
 
 class VBoxLayout(_BoxLayout):
+    """Vertical box layout based on PySide6: allows to place the widgets in a column."""
+
     _LAYOUT_CLASS = PySide6.QtWidgets.QVBoxLayout
     _BEFORE = 0
     _AFTER = 2
@@ -80,6 +96,12 @@ class VBoxLayout(_BoxLayout):
     _ORTO_AFTER = 1
 
     def _apply_align(self, align, size_policy):
+        """Compute the alignment flag for a layout cell and sets the size policy if needed.
+
+        :param align: the desired alignment (Align enum)
+        :param size_policy: the widget QSizePolicy object (None for a cell containing another layout)
+        :return: the resulting alignment flag
+        """
         align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.LEFT:
@@ -92,6 +114,8 @@ class VBoxLayout(_BoxLayout):
 
 
 class HBoxLayout(_BoxLayout):
+    """Horizontal box layout based on PySide6: allows to place the widgets in a row."""
+
     _LAYOUT_CLASS = PySide6.QtWidgets.QHBoxLayout
     _BEFORE = 3
     _AFTER = 1
@@ -100,6 +124,12 @@ class HBoxLayout(_BoxLayout):
     _ORTO_AFTER = 2
 
     def _apply_align(self, align, size_policy):
+        """Compute the alignment flag for a layout cell and sets the size policy if needed.
+
+        :param align: the desired alignment (Align enum)
+        :param size_policy: the widget QSizePolicy object (None for a cell containing another layout)
+        :return: the resulting alignment flag
+        """
         align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.TOP:
@@ -112,8 +142,14 @@ class HBoxLayout(_BoxLayout):
 
 
 class GridLayout(AbstractGridLayout, _Layout):
+    """Grid layout based on PySide6: allows to place the widgets in a two dimensional grid."""
 
-    def _create_layout(self, parent):
+    def _create_layout(self, window):
+        """Create and return a PySide6 layout object.
+
+        :param window: the window object to which the layout is applied (None to create a layout inside another layout)
+        :return: the PySide6 layout object
+        """
         layout = PySide6.QtWidgets.QGridLayout()
         layout.setHorizontalSpacing(self._hgap)
         layout.setVerticalSpacing(self._vgap)
@@ -160,11 +196,17 @@ class GridLayout(AbstractGridLayout, _Layout):
 
                         layout.addLayout(border_layout, row, col, alignment=align_flag)
 
-        if parent is not None:
-            parent.setLayout(layout)
+        if window is not None:
+            window._WindowClass__layout_parent.setLayout(layout)
         return layout
 
     def _apply_align(self, align, size_policy):
+        """Compute the alignment flag for a layout cell and sets the size policy if needed.
+
+        :param align: the desired alignment (Align enum)
+        :param size_policy: the widget QSizePolicy object (None for a cell containing another layout)
+        :return: the resulting alignment flag
+        """
         align_flag = super()._apply_align(align, size_policy)
         if align_flag == 0:
             if align & Align.TOP:
